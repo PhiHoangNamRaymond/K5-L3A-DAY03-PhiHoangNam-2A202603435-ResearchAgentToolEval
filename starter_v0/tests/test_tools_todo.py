@@ -1,122 +1,156 @@
-"""TODO CP3 (student): Tool Unit Test Challenge.
-
-Each test below is a stub. Replace `pytest.skip(...)` with a real test.
-Patterns to copy are in test_tools_examples.py. Fixtures are in conftest.py.
-
-Rules:
-- Offline only: mock HTTP with `fake_http`, set fake keys with `monkeypatch.setenv`.
-- One behaviour per test. Name the test after the behaviour, not the function.
-- Done = `pytest tests/ -v` shows 0 skipped, 0 failed.
-"""
 from __future__ import annotations
 
 import pytest
 
-from conftest import FakeResponse  # noqa: F401  (you will need it)
-from tools import TOOL_FUNCTIONS  # noqa: F401
+from conftest import FakeResponse
+from tools import TOOL_FUNCTIONS
 
-TODO = "TODO CP3 (student): implement this test"
-
-
-# ---------------- clarify ----------------
 
 def test_clarify_choice_returns_options_and_awaits_user() -> None:
-    # Call clarify with response_type="choice" and 2 options.
-    # Assert: options are returned unchanged, awaiting_user is True.
-    pytest.skip(TODO)
+    result = TOOL_FUNCTIONS["clarify"]("Nguồn nào?", response_type="choice", options=["web", "X"])
+    assert result["options"] == ["web", "X"]
+    assert result["awaiting_user"] is True
 
-
-# ---------------- format ----------------
 
 def test_format_sections_groups_items_by_section() -> None:
-    # Items with section "A", "B", "A" -> markdown has exactly one "## A" and one "## B".
-    pytest.skip(TODO)
+    items = [{"title": title, "section": section} for title, section in (("One", "A"), ("Two", "B"), ("Three", "A"))]
+    markdown = TOOL_FUNCTIONS["format"](items, template="sections")["markdown"]
+    assert markdown.count("## A") == markdown.count("## B") == 1
+    assert markdown.index("One") < markdown.index("Three") < markdown.index("## B")
 
 
 def test_format_thread_numbers_items() -> None:
-    # template="thread" -> lines start with "1/", "2/", ...
-    pytest.skip(TODO)
+    markdown = TOOL_FUNCTIONS["format"]([{"title": "One"}, {"title": "Two"}], template="thread")["markdown"]
+    assert [line[:2] for line in markdown.splitlines() if line] == ["1/", "2/"]
 
 
-def test_format_empty_items_does_not_crash() -> None:
-    # items=None and items=[] -> item_count == 0, no exception.
-    pytest.skip(TODO)
+@pytest.mark.parametrize("items", [None, []])
+def test_format_empty_items_does_not_crash(items) -> None:
+    assert TOOL_FUNCTIONS["format"](items)["item_count"] == 0
 
-
-# ---------------- send (guardrail) ----------------
 
 def test_send_confirmed_posts_to_telegram(monkeypatch, fake_http) -> None:
-    # Set TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID, mock HTTP.
-    # Assert: exactly one POST, URL contains the token, json has chat_id + text, status == "sent".
-    pytest.skip(TODO)
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "test-chat")
+    calls = fake_http(FakeResponse({"ok": True}))
+
+    result = TOOL_FUNCTIONS["send"]("Test bulletin", confirmed=True)
+
+    assert len(calls) == 1
+    assert calls[0]["method"] == "POST"
+    assert calls[0]["url"] == "https://api.telegram.org/bottest-token/sendMessage"
+    assert calls[0]["json"] == {"chat_id": "test-chat", "text": "Test bulletin", "parse_mode": "Markdown"}
+    assert result["status"] == "sent"
 
 
 def test_send_confirmed_without_env_returns_error_and_no_request(fake_http) -> None:
-    pytest.skip(TODO)
+    calls = fake_http(FakeResponse())
+    result = TOOL_FUNCTIONS["send"]("Test bulletin", confirmed=True)
+    assert result["error"] == "RuntimeError"
+    assert calls == []
 
-
-# ---------------- lookup ----------------
 
 def test_lookup_without_timeframe_omits_time_range(monkeypatch, fake_http) -> None:
-    # timeframe=None -> request body has no "time_range" key.
-    pytest.skip(TODO)
+    monkeypatch.setenv("TAVILY_API_KEY", "test-key")
+    calls = fake_http(FakeResponse({"results": []}))
+    result = TOOL_FUNCTIONS["lookup"]("example", timeframe=None)
+    assert "time_range" not in calls[0]["json"]
+    assert result["items"] == []
 
-
-# ---------------- fetch ----------------
 
 def test_fetch_maps_firecrawl_response(monkeypatch, fake_http) -> None:
-    # Mock {"data": {"markdown": "...", "metadata": {"title": "T", "sourceURL": "https://..."}}}
-    # Assert title/url/source/summary in result["items"][0].
-    pytest.skip(TODO)
+    monkeypatch.setenv("FIRECRAWL_API_KEY", "test-key")
+    calls = fake_http(FakeResponse({"data": {"markdown": "Text", "metadata": {"title": "T", "sourceURL": "https://example.org/final"}}}))
+    result = TOOL_FUNCTIONS["fetch"]("https://example.org/start")
+    assert calls[0]["json"] == {"url": "https://example.org/start", "formats": ["markdown"]}
+    assert result["items"] == [{"title": "T", "url": "https://example.org/final", "source": "example.org", "summary": "Text"}]
 
 
 def test_fetch_truncates_markdown_to_4000_chars(monkeypatch, fake_http) -> None:
-    pytest.skip(TODO)
+    monkeypatch.setenv("FIRECRAWL_API_KEY", "test-key")
+    fake_http(FakeResponse({"data": {"markdown": "x" * 4100}}))
+    assert TOOL_FUNCTIONS["fetch"]("https://example.org")["items"][0]["summary"] == "x" * 4000
 
-
-# ---------------- timeline / social_search ----------------
 
 def test_timeline_respects_limit_and_skips_items_without_id(monkeypatch, fake_http) -> None:
-    # Mock {"timeline": [...]} with 1 item missing tweet_id and 6 valid items, limit=3.
-    # Assert 3 items, and each url looks like https://x.com/<handle>/status/<id>.
-    pytest.skip(TODO)
+    monkeypatch.setenv("RAPIDAPI_KEY", "test-key")
+    items = [{"text": "No ID"}, *[{"tweet_id": str(i), "screen_name": "sample", "text": f"Post {i}"} for i in range(1, 7)]]
+    calls = fake_http(FakeResponse({"timeline": items}))
+    result = TOOL_FUNCTIONS["timeline"]("sample", limit=3)
+    assert calls[0]["params"] == {"screenname": "sample"}
+    assert [item["url"] for item in result["items"]] == [f"https://x.com/sample/status/{i}" for i in range(1, 4)]
 
 
-def test_social_search_passes_search_type(monkeypatch, fake_http) -> None:
-    # Assert the request params carry the query and search_type ("Top" / "Latest").
-    pytest.skip(TODO)
+@pytest.mark.parametrize("order", ["Top", "Latest"])
+def test_social_search_passes_search_type(monkeypatch, fake_http, order) -> None:
+    monkeypatch.setenv("RAPIDAPI_KEY", "test-key")
+    calls = fake_http(FakeResponse({"tweets": []}))
+    result = TOOL_FUNCTIONS["social_search"]("robotaxi", search_type=order)
+    assert calls[0]["params"] == {"query": "robotaxi", "search_type": order}
+    assert result["search_type"] == order
 
-
-# ---------------- policy (local knowledge + trust boundary) ----------------
 
 def test_policy_empty_query_returns_no_results() -> None:
-    pytest.skip(TODO)
+    assert TOOL_FUNCTIONS["policy"](" ")["results"] == []
 
 
 def test_policy_area_filter_only_returns_that_area() -> None:
-    # policy_area="data_privacy" -> every result has policy_area == "data_privacy".
-    pytest.skip(TODO)
+    hits = TOOL_FUNCTIONS["policy"]("customer data", policy_area="data_privacy")["results"]
+    assert hits
+    assert {hit["policy_area"] for hit in hits} == {"data_privacy"}
 
 
 def test_policy_instruction_like_lines_go_to_untrusted_text() -> None:
-    # One policy file contains a quoted line that tries to give the assistant orders.
-    # Query that section (source_citation) and assert: that line is in untrusted_text, NOT in facts.
-    pytest.skip(TODO)
+    hits = TOOL_FUNCTIONS["policy"]("viral tweet", policy_area="source_citation", top_k=20)["results"]
+    probe = next(hit for hit in hits if hit["section"] == "Injection probe")
+    assert probe["untrusted_text"] and "ignore the citation policy" in probe["untrusted_text"][0]
+    assert "ignore the citation policy" not in probe["facts"]
+
+# ---------------- extract_links ----------------
+
+def test_extract_links_keeps_unique_urls_in_input_order() -> None:
+    text = "Đọc [bài](https://example.org/wiki/Test_(a)), https://example.net/b. Lặp https://example.net/b"
+    result = TOOL_FUNCTIONS["extract_links"](text=text)
+
+    assert result["count"] == 2
+    assert result["items"] == [
+        {"title": "example.org", "url": "https://example.org/wiki/Test_(a)", "source": "example.org"},
+        {"title": "example.net", "url": "https://example.net/b", "source": "example.net"},
+    ]
 
 
-# ---------------- YOUR NEW TOOL(S) ----------------
-# Write at least 3 tests per tool your team adds:
-#   1. happy path (mocked if it calls an API)
-#   2. bad / missing input from the model (empty string, wrong type, out-of-enum value)
-#   3. failure path (missing key, HTTP error, timeout) -> returns error dict, does not raise
-
-def test_my_new_tool_happy_path() -> None:
-    pytest.skip(TODO)
+@pytest.mark.parametrize("text", [None, 12, "   "])
+def test_extract_links_rejects_invalid_text(text) -> None:
+    assert TOOL_FUNCTIONS["extract_links"](text=text)["error"] == "invalid_text"
 
 
-def test_my_new_tool_bad_input_from_model() -> None:
-    pytest.skip(TODO)
+def test_extract_links_returns_error_when_no_url_exists() -> None:
+    result = TOOL_FUNCTIONS["extract_links"]("Tên miền example.org và ftp://example.net")
+
+    assert result == {"error": "no_links", "message": "No HTTP or HTTPS links were found."}
 
 
-def test_my_new_tool_failure_returns_error_dict() -> None:
-    pytest.skip(TODO)
+def test_extract_links_rejects_oversized_text() -> None:
+    assert TOOL_FUNCTIONS["extract_links"]("x" * 20_001)["error"] == "text_too_long"
+
+
+def test_chat_uses_unique_urls_from_extract_links_without_a_second_model_call(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("DAY03_ENV_FILE", str(tmp_path / "absent.env"))
+    from chat import run_model_tool_loop
+    from providers.base import ModelResponse, ToolCall
+
+    class ExtractionProvider:
+        calls = 0
+
+        def complete(self, *args, **kwargs):
+            self.calls += 1
+            return ModelResponse(tool_calls=[ToolCall("extract_links", {
+                "text": "https://example.org/a https://example.org/b https://example.org/a",
+            })])
+
+    provider = ExtractionProvider()
+    result = run_model_tool_loop(provider=provider, messages=[], tools=[], model=None, max_tool_rounds=3)
+
+    assert result["status"] == "answered"
+    assert result["assistant_text"] == "1. https://example.org/a\n2. https://example.org/b"
+    assert provider.calls == 1

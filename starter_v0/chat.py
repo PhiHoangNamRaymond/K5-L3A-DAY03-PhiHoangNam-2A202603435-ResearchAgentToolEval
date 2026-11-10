@@ -84,6 +84,7 @@ def run_model_tool_loop(
     tools: list[dict[str, Any]],
     model: str | None,
     max_tool_rounds: int,
+    allow_external_actions: bool = True,
 ) -> dict[str, Any]:
     working_messages = list(messages)
     rounds: list[dict[str, Any]] = []
@@ -113,7 +114,10 @@ def run_model_tool_loop(
 
         for call in calls:
             print(f"🔧 {call.name}({json.dumps(call.args, ensure_ascii=False, sort_keys=True)})")
-            event = execute_tool_call(call)
+            if call.name == "send" and not allow_external_actions:
+                event = {"tool": call.name, "args": call.args, "result": {"error": "read_only_demo", "message": "UI demo không gửi Telegram."}}
+            else:
+                event = execute_tool_call(call)
             round_record["tool_results"].append(event)
             all_tool_events.append(event)
 
@@ -133,6 +137,16 @@ def run_model_tool_loop(
             non_clarification_events.append(event)
 
         rounds.append(round_record)
+        if len(calls) == 1 and calls[0].name == "extract_links":
+            extraction = non_clarification_events[0]["result"]
+            if "items" in extraction:
+                links = [f"{index}. {item['url']}" for index, item in enumerate(extraction["items"], 1)]
+                return {
+                    "status": "answered",
+                    "assistant_text": "\n".join(links),
+                    "rounds": rounds,
+                    "tool_events": all_tool_events,
+                }
         working_messages.append(tool_results_message(non_clarification_events))
 
     return {

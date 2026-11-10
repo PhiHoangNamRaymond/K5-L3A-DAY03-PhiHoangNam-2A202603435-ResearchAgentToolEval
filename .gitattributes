@@ -1,0 +1,4 @@
+# Artifact hashes are computed from the original bytes.
+starter_v0/artifacts/system_prompt.md -text whitespace=cr-at-eol
+starter_v0/artifacts/tools.yaml -text whitespace=cr-at-eol
+starter_v0/artifacts/versions/** -text whitespace=cr-at-eol

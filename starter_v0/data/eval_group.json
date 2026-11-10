@@ -1,7 +1,103 @@
 {
   "dataset_id": "day03_v2_research_group",
   "dataset_role": "group",
-  "description": "Case do NHÓM tự viết thêm để cover thêm trường hợp. Mỗi case cần: id, phase='B', query HOẶC turns, failure_type (thuộc allowed_failure_types), và expect (tool_calls[...] hoặc no_tool=true). Nên kèm metadata.what_it_tests.",
-  "allowed_failure_types": ["wrong_tool", "wrong_arg_value", "wrong_boundary", "unnecessary_tool", "out_of_scope", "missing_info"],
-  "cases": []
+  "description": "10 case của Phi Hoang Nam: 5 single turn và 5 multi turn.",
+  "cases": [
+    {
+      "id": "G01_extract_unique_links",
+      "phase": "B",
+      "query": "Trích các URL đã có, giữ thứ tự và bỏ trùng. Đây là đoạn văn: https://example.org/brief và https://example.net/report. Nhắc lại https://example.org/brief.",
+      "failure_type": "wrong_tool",
+      "expect": {"tool_calls": [{"name": "extract_links", "args": {}}]},
+      "metadata": {"what_it_tests": "Định tuyến tới tool mới khi người dùng chỉ muốn trích link từ văn bản đã dán."}
+    },
+    {
+      "id": "G02_format_supplied_bullets",
+      "phase": "B",
+      "query": "Dùng template bullets cho hai item có sẵn sau đây: tài liệu A (https://example.org/a), tài liệu B (https://example.org/b). Chỉ trình bày lại các mục này.",
+      "failure_type": "wrong_tool",
+      "expect": {"tool_calls": [{"name": "format", "args": {"template": "bullets"}}]},
+      "metadata": {"what_it_tests": "Phân biệt định dạng dữ liệu có sẵn với đọc lại hai URL."}
+    },
+    {
+      "id": "G03_lookup_month_and_limit",
+      "phase": "B",
+      "query": "Tìm 4 tin trên web trong tháng này với truy vấn chính xác 'AI chips'.",
+      "failure_type": "wrong_arg_value",
+      "expect": {"tool_calls": [{"name": "lookup", "args": {"query": "AI chips", "topic": "news", "timeframe": "month", "max_results": 4}}]},
+      "metadata": {"what_it_tests": "Mang đúng truy vấn, chủ đề, khoảng thời gian và số kết quả."}
+    },
+    {
+      "id": "G04_policy_tool_usage",
+      "phase": "B",
+      "query": "Tra sổ tay nội bộ mục sử dụng tool, chỉ lấy 1 đoạn liên quan đến khoảng nghỉ giữa các lần gọi arXiv.",
+      "failure_type": "wrong_tool",
+      "expect": {"tool_calls": [{"name": "policy", "args": {"policy_area": "tool_usage", "top_k": 1}}]},
+      "metadata": {"what_it_tests": "Từ khóa arXiv nằm trong câu hỏi policy nội bộ, route đúng vùng policy và giới hạn kết quả."}
+    },
+    {
+      "id": "G05_confirm_exact_draft",
+      "phase": "B",
+      "query": "Đăng lên Telegram nội dung sau: ‘Seminar AI thứ Sáu lúc 15h’. Cho mình xem và xác nhận trước khi đăng.",
+      "failure_type": "wrong_boundary",
+      "expect": {"tool_calls": [{"name": "clarify", "args": {"response_type": "yes_no"}}]},
+      "metadata": {"what_it_tests": "Có văn bản đầy đủ nhưng vẫn phải hỏi xác nhận gửi."}
+    },
+    {
+      "id": "G06_cancel_publish",
+      "phase": "B",
+      "turns": [
+        {"role": "user", "content": "Gửi bản tin: Buổi đọc paper dời sang 14h."},
+        {"role": "assistant", "content": "Bạn xác nhận gửi nguyên văn bản tin này lên Telegram chứ?"},
+        {"role": "user", "content": "Không, hủy yêu cầu đăng. Chỉ xác nhận lại là đã hủy."}
+      ],
+      "failure_type": "wrong_boundary",
+      "expect": {"no_tool": true},
+      "metadata": {"what_it_tests": "Hủy yêu cầu đang chờ xác nhận và tránh gọi tool gửi."}
+    },
+    {
+      "id": "G07_replace_url",
+      "phase": "B",
+      "turns": [
+        {"role": "user", "content": "Đọc https://example.org/first và tóm tắt."},
+        {"role": "user", "content": "Mình gửi nhầm. Chỉ đọc bài thay thế https://example.org/revised."}
+      ],
+      "failure_type": "wrong_arg_value",
+      "expect": {"tool_calls": [{"name": "fetch", "args": {"url": "https://example.org/revised"}}]},
+      "metadata": {"what_it_tests": "Thay thế URL cũ bằng URL đã sửa và chỉ đọc một bài."}
+    },
+    {
+      "id": "G08_change_social_order",
+      "phase": "B",
+      "turns": [
+        {"role": "user", "content": "Tìm 6 bài X phổ biến nhất với từ khóa chính xác 'robotaxi'."},
+        {"role": "user", "content": "Giữ từ khóa và số lượng, nhưng sắp theo bài mới nhất."}
+      ],
+      "failure_type": "wrong_arg_value",
+      "expect": {"tool_calls": [{"name": "social_search", "args": {"query": "robotaxi", "search_type": "Latest", "limit": 6}}]},
+      "metadata": {"what_it_tests": "Đổi kiểu sắp xếp và giữ các tham số của lượt trước."}
+    },
+    {
+      "id": "G09_switch_to_internal_rule",
+      "phase": "B",
+      "turns": [
+        {"role": "user", "content": "Tìm trên web về việc dùng dữ liệu khách hàng khi nghiên cứu AI."},
+        {"role": "user", "content": "Đổi phạm vi: chỉ tra quy định bảo mật dữ liệu của công ty mình, tối đa 2 mục."}
+      ],
+      "failure_type": "wrong_tool",
+      "expect": {"tool_calls": [{"name": "policy", "args": {"policy_area": "data_privacy", "top_k": 2}}]},
+      "metadata": {"what_it_tests": "Chuyển từ nguồn web công khai sang sổ tay bảo mật nội bộ."}
+    },
+    {
+      "id": "G10_latest_papers_keep_count",
+      "phase": "B",
+      "turns": [
+        {"role": "user", "content": "Tìm 3 paper arXiv về retrieval evaluation, theo độ liên quan."},
+        {"role": "user", "content": "Chủ đề và số lượng giữ nguyên. Sắp theo ngày nộp mới nhất."}
+      ],
+      "failure_type": "wrong_arg_value",
+      "expect": {"tool_calls": [{"name": "papers", "args": {"max_results": 3, "sort_by": "submittedDate"}}]},
+      "metadata": {"what_it_tests": "Sửa cách sắp xếp arXiv từ relevance sang submittedDate qua lượt sau."}
+    }
+  ]
 }
