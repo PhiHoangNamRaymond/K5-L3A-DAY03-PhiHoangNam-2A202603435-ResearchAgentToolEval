@@ -34,7 +34,7 @@ Nhóm có một thành viên, nên Phi Hoang Nam phụ trách toàn bộ bài la
 
 ## 5. Tự đánh giá
 
-<!-- TODO (tự viết bằng lời của mình): -->
+
 <!-- - Điều học được rõ nhất từ vòng lặp v0→v3 (vd: vì sao v1 giảm điểm, vì sao v2 tăng). -->
 - Với model nhỏ, sửa mô tả tool trong tools.yaml (v2) có tác dụng hơn thêm rule vào prompt (v1).
 - Thêm rule vào prompt có thể làm điểm giảm, nên phải đo lại sau mỗi lần sửa.
