@@ -137,7 +137,8 @@ Artifact `v3-demo+pe8362923cf23+t1f96ca01d8eb`. [v3-demo_openrouter_20261110T194
 ## 5. Khó khăn và cách xử lý
 
 - OpenRouter Flint trả structured tool call và cho hai run cloud đủ case. Gói miễn phí có hạn mức ngày; dùng thêm model Qwen3 local để làm một chuỗi so sánh đủ bốn bản bằng một model cố định.
-- Tavily, Firecrawl và RapidAPI chưa có khóa. Các trường hợp thiếu khóa được giữ trong `tool_results`. Điểm định tuyến và tham số vẫn đo được. Test offline mô phỏng HTTP để kiểm tra cấu trúc request và cách xử lý response của tool.
+- Khi tạo các run eval đã nộp, Tavily, Firecrawl và RapidAPI chưa được cấu hình. Các lỗi thiếu khóa nằm trong `tool_results`. Điểm eval đo tên tool và các tham số kỳ vọng. Unit test mô phỏng HTTP để kiểm tra request và cách xử lý phản hồi.
+- Sau khi cấu hình `.env`, Phi Hoang Nam chạy preflight và kiểm tra trực tiếp từng tool trên PowerShell. OpenRouter trả `OK` và một tool call. Tavily (`lookup`) và Firecrawl (`fetch`) mỗi tool trả 1 kết quả. Lần kiểm tra RapidAPI gần nhất ghi nhận `403 Forbidden` ở `timeline` và `HTTPError` ở `social_search`. Hai tool X vẫn cần xác minh quyền truy cập Twitter API45.
 - Không có chứng cứ gửi Telegram thật. Phiên demo chỉ thử bước xác nhận. Các test Telegram dùng HTTP giả lập.
 
 ## 6. Đóng góp
