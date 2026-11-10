@@ -2,7 +2,7 @@
 
 ## 1. Thông tin nhóm
 
-Phi Hoang Nam, MSSV `2A202603435`, lớp L3A. Nhóm có một thành viên. [Phân công và việc dùng AI](../../TEAM.md).
+Phi Hoang Nam, MSSV `2A202603435`, lớp L3A. Nhóm có một thành viên. [Thông tin nhóm và phân công](../../TEAM.md).
 
 ## 2. Phần A — Demo agent
 
@@ -142,7 +142,7 @@ Artifact `v3-demo+pe8362923cf23+t1f96ca01d8eb`. [v3-demo_openrouter_20261110T194
 
 ## 6. Đóng góp
 
-Phi Hoang Nam cấu hình khóa OpenRouter và thử preflight. Codex hỗ trợ code, test, chạy eval và tổng hợp bằng chứng. [Báo cáo cá nhân](2A202603435_PhiHoangNam.md).
+Phi Hoang Nam tạo khóa OpenRouter, cấu hình môi trường và chạy preflight. Phạm vi dùng AI được ghi trong báo cáo cá nhân. [Báo cáo cá nhân](2A202603435_PhiHoangNam.md).
 
 ## 7. Hạn chế và hướng cải thiện
 
